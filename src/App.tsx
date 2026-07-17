@@ -43,13 +43,22 @@ function Dashboard({ session }: { session: Session }) {
   return (
     <div className="min-h-screen bg-[#eef3f8]">
       <header className="border-b border-[#234a7a] bg-[#2c5d93] text-white">
-        <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-4 py-3">
-          <div>
-            <div className="text-xs text-blue-100">교육행정업무 지원 시스템</div>
-            <h1 className="text-lg font-semibold">학기말 교과평가 종합의견 자동 생성기</h1>
+        <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-3 text-[13px] font-semibold text-blue-100">
+              <span>교사용 업무 시스템</span>
+              <span className="h-px w-10 bg-blue-200/70" aria-hidden="true" />
+            </div>
+            <h1 className="mt-2 text-[30px] font-bold leading-tight text-white sm:text-[34px]">
+              교과평가 종합의견 작성 시스템
+            </h1>
+            <div className="mt-3 h-1 w-16 rounded-full bg-blue-200/70" aria-hidden="true" />
           </div>
-          <div className="flex items-center gap-3 text-xs text-blue-100 sm:text-sm">
-            <span className="hidden sm:inline">{session.user.email}</span>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <div className="hidden text-right text-sm text-blue-100 sm:block">
+              <div className="font-medium text-white">교사용 업무 화면</div>
+              <div className="mt-1 text-xs">{session.user.email}</div>
+            </div>
             <button
               type="button"
               onClick={() => supabase.auth.signOut()}
