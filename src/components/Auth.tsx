@@ -57,47 +57,71 @@ export function Auth() {
 
           <div className="grid gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_360px]">
             <section className="order-2 lg:order-1">
-              <div className="overflow-hidden rounded-sm border border-slate-300">
-                <table className="w-full border-collapse text-sm">
-                  <tbody>
-                    <tr className="border-b border-slate-300">
-                      <th className="w-36 bg-[#f7f7f7] px-3 py-3 text-left font-medium text-slate-700">
-                        시스템 안내
-                      </th>
-                      <td className="px-3 py-3 leading-6 text-slate-700">
-                        학생 목록 등록, 성취수준 입력, 종합의견 생성 및 저장 업무를 한
-                        화면에서 처리할 수 있습니다.
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300">
-                      <th className="bg-[#f7f7f7] px-3 py-3 text-left font-medium text-slate-700">
-                        주요 기능
-                      </th>
-                      <td className="px-3 py-3 text-slate-700">
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          <div className="rounded-sm border border-[#d8e2ee] bg-[#fbfcfe] px-3 py-2">
-                            학생 관리
-                          </div>
-                          <div className="rounded-sm border border-[#d8e2ee] bg-[#fbfcfe] px-3 py-2">
-                            평가 입력
-                          </div>
-                          <div className="rounded-sm border border-[#d8e2ee] bg-[#fbfcfe] px-3 py-2">
-                            종합의견 검토
+              <div className="rounded-sm border border-[#c7d5e5] bg-[#fafcff]">
+                <div className="border-b border-[#d9e3ee] px-4 py-3">
+                  <div className="text-sm font-semibold text-[#1f3d63]">시스템 안내</div>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    학생 목록 등록, 성취수준 입력, 종합의견 생성 및 저장 업무를 한
+                    화면에서 처리할 수 있습니다.
+                  </p>
+                </div>
+
+                <div className="grid gap-0 border-b border-[#d9e3ee] sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <div className="bg-[#f7f7f7] px-4 py-4 text-sm font-medium text-slate-700">
+                    주요 기능
+                  </div>
+                  <div className="px-4 py-4">
+                    <div className="space-y-3 text-sm text-slate-700">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 w-10 shrink-0 font-mono text-xs font-semibold text-[#6f86a6]">
+                          01
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-800">학생 관리</div>
+                          <div className="mt-1 text-slate-600">
+                            학급 학생 파일 등록과 열 매핑을 진행합니다.
                           </div>
                         </div>
-                      </td>
-                    </tr>
-                    <tr>
-                      <th className="bg-[#f7f7f7] px-3 py-3 text-left font-medium text-slate-700">
-                        사용 안내
-                      </th>
-                      <td className="px-3 py-3 leading-6 text-slate-700">
-                        최초 접속 후 학생 명단 파일을 등록하고, 교과 및 학기를 선택한 뒤
-                        성취수준과 메모를 입력해 종합의견을 확인해 주세요.
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                      </div>
+                      <div className="flex items-start gap-3 border-t border-[#eef3f8] pt-3">
+                        <div className="mt-0.5 w-10 shrink-0 font-mono text-xs font-semibold text-[#6f86a6]">
+                          02
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-800">평가 입력</div>
+                          <div className="mt-1 text-slate-600">
+                            성취기준별 성취수준과 메모를 학생 단위로 입력합니다.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 border-t border-[#eef3f8] pt-3">
+                        <div className="mt-0.5 w-10 shrink-0 font-mono text-xs font-semibold text-[#6f86a6]">
+                          03
+                        </div>
+                        <div>
+                          <div className="font-medium text-slate-800">종합의견 검토</div>
+                          <div className="mt-1 text-slate-600">
+                            생성된 문장을 확인하고 복사, 임시저장, 확정을 진행합니다.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-0 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <div className="bg-[#f7f7f7] px-4 py-4 text-sm font-medium text-slate-700">
+                    사용 순서
+                  </div>
+                  <div className="px-4 py-4">
+                    <ol className="space-y-2 text-sm leading-6 text-slate-700">
+                      <li>1. Google 계정으로 로그인합니다.</li>
+                      <li>2. 학생 명단 파일을 등록하고 학급 정보를 확인합니다.</li>
+                      <li>3. 교과와 학기를 선택해 성취수준과 메모를 입력합니다.</li>
+                      <li>4. 생성된 종합의견을 검토한 뒤 저장 또는 복사합니다.</li>
+                    </ol>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4 rounded-sm border border-[#d6c79b] bg-[#fffbea]">
@@ -126,7 +150,7 @@ export function Auth() {
                     <button
                       type="button"
                       onClick={handleGoogleLogin}
-                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-sm border border-[#234a7a] bg-[#2c5d93] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#244f80] focus:outline-none focus:ring-2 focus:ring-[#5e93cf]"
+                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-sm border border-[#234a7a] bg-[#2c5d93] px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-[#244f80] focus:outline-none focus:ring-2 focus:ring-[#5e93cf]"
                     >
                       <GoogleIcon />
                       Google 계정으로 로그인
@@ -134,11 +158,10 @@ export function Auth() {
                   </div>
 
                   <div className="mt-4 rounded-sm border border-slate-300 bg-white p-4 text-sm text-slate-700">
-                    <div className="font-medium text-slate-800">접속 후 가능 업무</div>
+                    <div className="font-medium text-slate-800">확인 사항</div>
                     <ul className="mt-2 space-y-2 leading-6">
-                      <li>1. 학급 학생 파일 등록 및 열 매핑</li>
-                      <li>2. 성취기준별 성취수준 및 메모 입력</li>
-                      <li>3. 학생별 종합의견 복사, 임시저장, 확정</li>
+                      <li>로그인 후 학생 관리, 평가 입력, 종합의견 메뉴를 사용할 수 있습니다.</li>
+                      <li>현재 학기 데이터는 로그인 이후 바로 조회됩니다.</li>
                     </ul>
                   </div>
                 </div>
