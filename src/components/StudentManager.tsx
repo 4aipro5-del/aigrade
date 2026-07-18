@@ -1,7 +1,15 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../lib/supabaseClient'
-import { setStudentName } from '../lib/studentNames'
+import { matchesExactStudentGrade } from '../lib/gradeGroup'
+import { getDisplayName, setStudentName } from '../lib/studentNames'
+import type { Student } from '../types/database'
+
+interface StudentManagerProps {
+  schoolYear: string
+  semester: string
+  selectedGrade: number
+}
 
 interface ParsedStudent {
   studentNo: string
@@ -23,18 +31,82 @@ function columnLabel(header: string, index: number): string {
   return header.trim() !== '' ? header : `열 ${index + 1} (제목 없음)`
 }
 
-export function StudentManager() {
+function compareTerms(a: string, b: string): number {
+  const [aYear = '0', aSemester = ''] = a.split('-')
+  const [bYear = '0', bSemester = ''] = b.split('-')
+  const yearDiff = Number(bYear) - Number(aYear)
+
+  if (yearDiff !== 0) return yearDiff
+  if (aSemester === bSemester) return 0
+  if (aSemester === '1학기') return -1
+  if (bSemester === '1학기') return 1
+  return aSemester.localeCompare(bSemester, 'ko')
+}
+
+export function StudentManager({ schoolYear, semester, selectedGrade }: StudentManagerProps) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [headers, setHeaders] = useState<string[]>([])
   const [rows, setRows] = useState<string[][]>([])
   const [studentNoCol, setStudentNoCol] = useState<number | null>(null)
   const [nameCol, setNameCol] = useState<number | null>(null)
-  const [grade, setGrade] = useState('6')
+  const [grade, setGrade] = useState(String(selectedGrade))
   const [classNo, setClassNo] = useState('1')
-  const [term, setTerm] = useState('2026-1학기')
+  const [term, setTerm] = useState(`${schoolYear}-${semester}`)
   const [isDragging, setIsDragging] = useState(false)
   const [status, setStatus] = useState<Status>({ type: 'idle' })
+  const [registeredStudents, setRegisteredStudents] = useState<Student[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setTerm(`${schoolYear}-${semester}`)
+  }, [schoolYear, semester])
+
+  useEffect(() => {
+    setGrade(String(selectedGrade))
+  }, [selectedGrade])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadStudents() {
+      setLoadingStudents(true)
+      setLoadError(null)
+
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      if (userError || !userData.user) {
+        if (!cancelled) {
+          setLoadError('로그인 정보를 확인하지 못했습니다.')
+          setLoadingStudents(false)
+        }
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('teacher_id', userData.user.id)
+        .order('term', { ascending: false })
+        .order('grade', { ascending: true })
+        .order('class_no', { ascending: true })
+        .order('student_no', { ascending: true })
+
+      if (cancelled) return
+
+      if (error) {
+        setLoadError(error.message)
+      } else {
+        setRegisteredStudents(data ?? [])
+      }
+      setLoadingStudents(false)
+    }
+
+    loadStudents()
+    return () => {
+      cancelled = true
+    }
+  }, [status])
 
   const resetParsed = () => {
     setFileName(null)
@@ -95,8 +167,20 @@ export function StudentManager() {
       .filter((r) => r.studentNo !== '' || r.name !== '')
   }, [rows, studentNoCol, nameCol])
 
+  const termOptions = useMemo(() => {
+    const unique = Array.from(
+      new Set([
+        `${schoolYear}-1학기`,
+        `${schoolYear}-2학기`,
+        `${schoolYear}-${semester}`,
+        ...registeredStudents.map((student) => student.term),
+      ]),
+    )
+    return unique.sort(compareTerms)
+  }, [registeredStudents, schoolYear, semester])
+
   const canSubmit =
-    parsedStudents.length > 0 && grade.trim() !== '' && classNo.trim() !== '' && term.trim() !== ''
+    parsedStudents.length > 0 && classNo.trim() !== '' && grade.trim() !== '' && term.trim() !== ''
 
   const handleSubmit = async () => {
     setStatus({ type: 'saving' })
@@ -133,38 +217,66 @@ export function StudentManager() {
       if (name) setStudentName(row.id, name)
     })
 
+    setRegisteredStudents((prev) => [...inserted, ...prev])
     setStatus({ type: 'done', message: `${inserted.length}명 등록 완료` })
     resetParsed()
   }
 
+  const visibleRegisteredStudents = useMemo(
+    () =>
+      registeredStudents.filter(
+        (student) => student.term === term && matchesExactStudentGrade(student.grade, Number(grade)),
+      ),
+    [grade, registeredStudents, term],
+  )
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700">일괄 등록 대상 학급 정보</h2>
-        <div className="flex flex-wrap gap-4">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+      <section className="rounded-2xl border border-[#d8e3ef] bg-white p-5 shadow-[0_10px_24px_rgba(140,164,188,0.08)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">일괄 등록 대상 학급 정보</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              여기서 선택한 학년과 학기로 업로드와 명단 조회가 함께 맞춰집니다.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-4">
+          <label className="flex items-center gap-2 rounded-full border border-[#e0e7f0] bg-[#f1f8ee] px-3 py-2 text-sm text-slate-600">
             학년
-            <input
+            <select
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
+              className="w-20 rounded-full border border-[#d2dceb] bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#bfd5ee]"
+            >
+              {[1, 2, 3, 4, 5, 6].map((value) => (
+                <option key={value} value={value}>
+                  {value}학년
+                </option>
+              ))}
+            </select>
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 rounded-full border border-[#e0e7f0] bg-[#f8fbff] px-3 py-2 text-sm text-slate-600">
             반
             <input
               value={classNo}
               onChange={(e) => setClassNo(e.target.value)}
-              className="w-16 rounded-md border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-16 rounded-full border border-[#d2dceb] px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#bfd5ee]"
             />
           </label>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 rounded-full border border-[#e0e7f0] bg-[#eef8f4] px-3 py-2 text-sm text-slate-600">
             학기
-            <input
+            <select
               value={term}
               onChange={(e) => setTerm(e.target.value)}
-              className="w-32 rounded-md border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
+              className="w-32 rounded-full border border-[#d1e6da] bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#bfe6d0]"
+            >
+              {termOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
       </section>
@@ -177,8 +289,10 @@ export function StudentManager() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
-          isDragging ? 'border-indigo-400 bg-indigo-50' : 'border-slate-300 bg-white hover:bg-slate-50'
+        className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+          isDragging
+            ? 'border-[#9ebde1] bg-[#f1f7ff]'
+            : 'border-[#d6e1ed] bg-white hover:bg-[#f8fbff]'
         }`}
       >
         <input
@@ -199,15 +313,15 @@ export function StudentManager() {
       </section>
 
       {headers.length > 0 && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <section className="rounded-2xl border border-[#d8e3ef] bg-white p-5 shadow-[0_10px_24px_rgba(140,164,188,0.08)]">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">열 매핑</h2>
           <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 rounded-full border border-[#ece5fb] bg-[#faf7ff] px-3 py-2 text-sm text-slate-600">
               번호/학번 열
               <select
                 value={studentNoCol ?? ''}
                 onChange={(e) => setStudentNoCol(e.target.value === '' ? null : Number(e.target.value))}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="rounded-full border border-[#d9d1f0] bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#d7c9f7]"
               >
                 <option value="">선택 안 함</option>
                 {headers.map((h, i) => (
@@ -217,12 +331,12 @@ export function StudentManager() {
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
+            <label className="flex items-center gap-2 rounded-full border border-[#ece5fb] bg-[#faf7ff] px-3 py-2 text-sm text-slate-600">
               이름 열
               <select
                 value={nameCol ?? ''}
                 onChange={(e) => setNameCol(e.target.value === '' ? null : Number(e.target.value))}
-                className="rounded-md border border-slate-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="rounded-full border border-[#d9d1f0] bg-white px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-[#d7c9f7]"
               >
                 <option value="">선택 안 함</option>
                 {headers.map((h, i) => (
@@ -237,13 +351,13 @@ export function StudentManager() {
       )}
 
       {parsedStudents.length > 0 && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
+        <section className="rounded-2xl border border-[#d8e3ef] bg-white p-5 shadow-[0_10px_24px_rgba(140,164,188,0.08)]">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">
             미리보기 ({parsedStudents.length}명) — 등록 완료 전 검수용
           </h2>
-          <div className="max-h-80 overflow-auto rounded-md border border-slate-200">
+          <div className="max-h-80 overflow-auto rounded-xl border border-[#e1e9f2]">
             <table className="min-w-full text-sm">
-              <thead className="sticky top-0 bg-slate-50">
+              <thead className="sticky top-0 bg-[#f8fbff]">
                 <tr>
                   <th className="border-b border-slate-200 px-3 py-2 text-left font-medium text-slate-600">
                     번호/학번
@@ -272,6 +386,71 @@ export function StudentManager() {
         </section>
       )}
 
+      <section className="rounded-2xl border border-[#d8e3ef] bg-white p-5 shadow-[0_10px_24px_rgba(140,164,188,0.08)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-700">등록된 학생 조회</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              위에서 고른 학년과 학기에 맞는 명단만 바로 보여줍니다.
+            </p>
+          </div>
+          <div className="rounded-full border border-[#dfe8f1] bg-[#f8fbff] px-3 py-2 text-sm font-medium text-slate-600">
+            {term} · {grade}학년
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[#e1e9f2]">
+          {loadingStudents ? (
+            <div className="px-4 py-6 text-center text-sm text-slate-500">불러오는 중...</div>
+          ) : loadError ? (
+            <div className="px-4 py-6 text-sm text-red-700">{loadError}</div>
+          ) : visibleRegisteredStudents.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm text-slate-500">
+              현재 조회 조건에 등록된 학생이 없습니다.
+            </div>
+          ) : (
+            <div className="max-h-80 overflow-auto">
+              <table className="min-w-full text-sm">
+                <thead className="sticky top-0 bg-[#f8fbff]">
+                  <tr>
+                    <th className="border-b border-[#e1e9f2] px-3 py-2 text-left font-medium text-slate-600">
+                      학년/반
+                    </th>
+                    <th className="border-b border-[#e1e9f2] px-3 py-2 text-left font-medium text-slate-600">
+                      번호
+                    </th>
+                    <th className="border-b border-[#e1e9f2] px-3 py-2 text-left font-medium text-slate-600">
+                      화면 표시명
+                    </th>
+                    <th className="border-b border-[#e1e9f2] px-3 py-2 text-left font-medium text-slate-600">
+                      학기
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRegisteredStudents.map((student, index) => (
+                    <tr key={student.id} className={index % 2 === 1 ? 'bg-[#fbfdff]' : 'bg-white'}>
+                      <td className="border-b border-[#edf2f7] px-3 py-2 text-slate-700">
+                        {student.grade ?? '-'}학년 {student.class_no ?? '-'}반
+                      </td>
+                      <td className="border-b border-[#edf2f7] px-3 py-2 text-slate-700">
+                        {student.student_no ?? student.pseudo_label}
+                      </td>
+                      <td className="border-b border-[#edf2f7] px-3 py-2 text-slate-700">
+                        {getDisplayName(student.id, student.pseudo_label)}
+                      </td>
+                      <td className="border-b border-[#edf2f7] px-3 py-2 text-slate-500">
+                        {student.term}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
       {status.type === 'error' && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
           {status.message}
@@ -288,7 +467,7 @@ export function StudentManager() {
           type="button"
           disabled={!canSubmit || status.type === 'saving'}
           onClick={handleSubmit}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="rounded-full bg-[#2c5d93] px-4 py-2 text-sm font-medium text-white hover:bg-[#244f80] disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {status.type === 'saving' ? '등록 중...' : '등록 완료'}
         </button>

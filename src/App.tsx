@@ -1,17 +1,31 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isSupabaseConfigured, supabase } from './lib/supabaseClient'
+import { getGradeGroupForGrade } from './lib/gradeGroup'
 import { useAssessmentGrid } from './hooks/useAssessmentGrid'
+import { useStandardSelection } from './hooks/useStandardSelection'
+import { useSubjects } from './hooks/useSubjects'
 import { AssessmentGrid } from './components/AssessmentGrid'
+import { StandardSelector } from './components/StandardSelector'
 import { StudentManager } from './components/StudentManager'
 import { ReportCommentPanel } from './components/ReportCommentPanel'
 import { Auth } from './components/Auth'
 
-const SUBJECTS = ['국어', '수학', '사회', '과학', '영어', '도덕', '실과', '체육', '음악', '미술']
+type Tab = 'students' | 'standards' | 'assessment' | 'report'
 
-type Tab = 'assessment' | 'report' | 'students'
+const TAB_ORDER: Tab[] = ['students', 'standards', 'assessment', 'report']
 
 const TAB_META: Record<Tab, { label: string; section: string; description: string }> = {
+  students: {
+    label: '학생 관리',
+    section: '기초자료관리',
+    description: '학급 학생 명단을 등록하고 확인합니다.',
+  },
+  standards: {
+    label: '성취기준',
+    section: '기준설정',
+    description: '이번 평가에 사용할 성취기준만 선택해 둡니다.',
+  },
   assessment: {
     label: '평가 입력',
     section: '평가관리',
@@ -22,22 +36,46 @@ const TAB_META: Record<Tab, { label: string; section: string; description: strin
     section: '기록관리',
     description: '생성된 종합의견을 검토하고 저장합니다.',
   },
-  students: {
-    label: '학생 관리',
-    section: '기초자료관리',
-    description: '학급 학생 명단을 등록하고 확인합니다.',
-  },
 }
 
 function Dashboard({ session }: { session: Session }) {
-  const [tab, setTab] = useState<Tab>('assessment')
-  const [subject, setSubject] = useState(SUBJECTS[0])
-  const [term, setTerm] = useState('2026-1학기')
+  const [tab, setTab] = useState<Tab>('students')
+  const [subject, setSubject] = useState('')
+  const [schoolYear, setSchoolYear] = useState('2026')
+  const [semester, setSemester] = useState('1학기')
+  const [grade, setGrade] = useState('6')
+  const term = `${schoolYear}-${semester}`
+  const gradeNumber = Number(grade)
+  const gradeGroup = getGradeGroupForGrade(gradeNumber)
+
+  const { subjects } = useSubjects(gradeGroup)
+
+  useEffect(() => {
+    if (subjects.length === 0) {
+      setSubject('')
+      return
+    }
+
+    if (!subject || !subjects.includes(subject)) {
+      setSubject(subjects[0])
+    }
+  }, [subjects, subject])
 
   const { students, standards, getLevel, getNote, setLevel, setNote, loading, error } =
-    useAssessmentGrid(subject, term)
+    useAssessmentGrid(subject, term, gradeNumber)
+  const {
+    selectedCodes,
+    selectedCount,
+    toggleCode,
+    selectAll,
+    clearAll,
+    setSelectedCodes,
+  } = useStandardSelection(standards, session.user.id, subject, term, gradeNumber)
 
-  const showSubjectPicker = tab === 'assessment' || tab === 'report'
+  const activeStandards = standards.filter((standard) => selectedCodes.includes(standard.code))
+  const showGradePicker = true
+  const showSubjectPicker = tab === 'standards' || tab === 'assessment' || tab === 'report'
+  const showCommonFilter = tab !== 'students'
   const currentTabMeta = TAB_META[tab]
 
   return (
@@ -72,38 +110,22 @@ function Dashboard({ session }: { session: Session }) {
 
       <div className="border-b border-[#b7c9dd] bg-white">
         <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-3">
-          <div className="flex flex-col justify-between gap-2 lg:flex-row lg:items-center">
-            <div>
-              <div className="text-xs text-slate-500">업무영역 &gt; {currentTabMeta.section}</div>
-              <div className="mt-1 text-lg font-semibold text-slate-800">{currentTabMeta.label}</div>
-              <div className="mt-1 text-sm text-slate-500">{currentTabMeta.description}</div>
-            </div>
-            <div className="grid gap-2 text-sm sm:grid-cols-3">
-              <div className="rounded-sm border border-[#ccd8e6] bg-[#f7fafe] px-3 py-2">
-                <div className="text-xs text-slate-500">학생 수</div>
-                <div className="mt-1 font-semibold text-slate-800">{students.length}명</div>
-              </div>
-              <div className="rounded-sm border border-[#ccd8e6] bg-[#f7fafe] px-3 py-2">
-                <div className="text-xs text-slate-500">성취기준 수</div>
-                <div className="mt-1 font-semibold text-slate-800">{standards.length}개</div>
-              </div>
-              <div className="rounded-sm border border-[#ccd8e6] bg-[#f7fafe] px-3 py-2">
-                <div className="text-xs text-slate-500">현재 학기</div>
-                <div className="mt-1 font-semibold text-slate-800">{term}</div>
-              </div>
-            </div>
+          <div>
+            <div className="text-xs text-slate-500">업무영역 &gt; {currentTabMeta.section}</div>
+            <div className="mt-1 text-lg font-semibold text-slate-800">{currentTabMeta.label}</div>
+            <div className="mt-1 text-sm text-slate-500">{currentTabMeta.description}</div>
           </div>
 
           <nav className="flex flex-wrap gap-2">
-            {(Object.keys(TAB_META) as Tab[]).map((key) => (
+            {TAB_ORDER.map((key) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                className={`min-w-[132px] rounded-sm border px-3 py-2 text-left text-sm ${
+                className={`min-w-[132px] rounded-xl border px-3 py-2 text-left text-sm transition ${
                   tab === key
-                    ? 'border-[#234a7a] bg-[#2c5d93] text-white'
-                    : 'border-[#bccbdb] bg-[#f8fafc] text-slate-700 hover:bg-[#eef4fa]'
+                    ? 'border-[#2c5d93] bg-[#2c5d93] text-white shadow-sm shadow-[#2c5d93]/20'
+                    : 'border-[#d5e0ed] bg-white text-slate-700 hover:bg-[#f4f8fc]'
                 }`}
               >
                 <div className="text-[11px] opacity-80">{TAB_META[key].section}</div>
@@ -114,63 +136,122 @@ function Dashboard({ session }: { session: Session }) {
         </div>
       </div>
 
-      <div className="border-b border-[#c8d5e3] bg-[#f3f7fb]">
-        <div className="mx-auto w-full max-w-[1400px] px-4 py-3">
-          <div className="rounded-sm border border-[#b7c9dd] bg-white">
-            <div className="border-b border-[#d4e0ec] bg-[#edf4fb] px-4 py-2 text-sm font-medium text-[#1f3d63]">
-              기본 조회 조건
-            </div>
-            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <span className="min-w-10 font-medium">학기</span>
-                <input
-                  value={term}
-                  onChange={(e) => setTerm(e.target.value)}
-                  className="h-9 w-36 rounded-sm border border-slate-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6e97c6]"
-                />
-              </label>
-              {showSubjectPicker && (
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <span className="min-w-10 font-medium">교과</span>
+      {showCommonFilter && (
+        <div className="border-b border-[#c8d5e3] bg-[#f3f7fb]">
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-3">
+            <div className="rounded-2xl border border-[#d7e2ee] bg-white shadow-[0_8px_24px_rgba(131,155,181,0.08)]">
+              <div className="border-b border-[#e3ebf4] bg-[#f7fbff] px-5 py-3 text-sm font-semibold text-[#35557d]">
+                기본 조회 조건
+              </div>
+              <div className="flex flex-wrap items-center gap-3 px-5 py-4">
+                <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f8fbff] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e8f0f8]/70">
+                  <span className="min-w-12 font-medium text-slate-500">학년도</span>
+                  <input
+                    value={schoolYear}
+                    onChange={(e) => setSchoolYear(e.target.value)}
+                    className="h-9 w-24 rounded-full border border-[#d1ddeb] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#b7d3f0]"
+                  />
+                </label>
+                <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#eef8f4] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e3f1ea]/70">
+                  <span className="min-w-10 font-medium text-slate-500">학기</span>
                   <select
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    className="h-9 w-28 rounded-sm border border-slate-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6e97c6]"
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="h-9 min-w-[112px] rounded-full border border-[#d1e6da] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#bfe6d0]"
                   >
-                    {SUBJECTS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
+                    <option value="1학기">1학기</option>
+                    <option value="2학기">2학기</option>
                   </select>
                 </label>
-              )}
-              <div className="text-xs text-slate-500">
-                현재 화면에 필요한 조회 조건을 변경하면 데이터가 즉시 다시 반영됩니다.
+                {showGradePicker && (
+                  <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f1f8ee] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e7f2e2]/70">
+                    <span className="min-w-10 font-medium text-slate-500">학년</span>
+                    <select
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="h-9 min-w-[148px] rounded-full border border-[#d1e6da] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#bfe6d0]"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((value) => (
+                        <option key={value} value={value}>
+                          {value}학년
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {showSubjectPicker &&
+                  (subjects.length > 0 ? (
+                    <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f7f3ff] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#ece7fb]/70">
+                      <span className="min-w-10 font-medium text-slate-500">교과</span>
+                      <select
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="h-9 min-w-[132px] rounded-full border border-[#d9d7ef] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#d3c7f7]"
+                      >
+                        {subjects.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <span className="text-xs text-amber-700">
+                      achievement_standards 테이블에 등록된 교과가 없습니다.
+                    </span>
+                  ))}
+                <div className="text-xs text-slate-500">
+                  학생 관리와 평가 화면 모두 이 조회 조건을 함께 사용합니다.
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <main className="mx-auto w-full max-w-[1400px] px-4 py-4">
-        {tab === 'students' && <StudentManager />}
+        {tab === 'students' && (
+          <StudentManager schoolYear={schoolYear} semester={semester} selectedGrade={gradeNumber} />
+        )}
 
-        {(tab === 'assessment' || tab === 'report') && error && (
-          <div className="mb-4 rounded-sm border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        {(tab === 'standards' || tab === 'assessment' || tab === 'report') && error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
+        {tab === 'standards' &&
+          (loading ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
+              불러오는 중...
+            </div>
+          ) : (
+            <StandardSelector
+              standards={standards}
+              selectedCodes={selectedCodes}
+              onToggleCode={toggleCode}
+              onSelectAll={selectAll}
+              onClearAll={clearAll}
+              onSelectDomain={(codes) => setSelectedCodes([...selectedCodes, ...codes])}
+              onClearDomain={(codes) =>
+                setSelectedCodes(selectedCodes.filter((code) => !codes.includes(code)))
+              }
+            />
+          ))}
+
         {tab === 'assessment' &&
           (loading ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
               불러오는 중...
+            </div>
+          ) : selectedCount === 0 ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-800 shadow-sm">
+              성취기준 탭에서 이번 평가에 사용할 성취기준을 먼저 선택해 주세요.
             </div>
           ) : (
             <AssessmentGrid
               students={students}
-              standards={standards}
+              standards={activeStandards}
               getLevel={getLevel}
               getNote={getNote}
               onChangeLevel={setLevel}
@@ -180,13 +261,17 @@ function Dashboard({ session }: { session: Session }) {
 
         {tab === 'report' &&
           (loading ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
               불러오는 중...
+            </div>
+          ) : selectedCount === 0 ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center text-sm text-amber-800 shadow-sm">
+              성취기준 탭에서 사용할 성취기준을 먼저 선택하면 종합의견을 볼 수 있습니다.
             </div>
           ) : (
             <ReportCommentPanel
               students={students}
-              standards={standards}
+              standards={activeStandards}
               subject={subject}
               term={term}
               getLevel={getLevel}

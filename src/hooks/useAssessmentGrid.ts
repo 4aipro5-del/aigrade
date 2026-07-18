@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { getGradeGroupForGrade, matchesExactStudentGrade, matchesStandardGradeGroup } from '../lib/gradeGroup'
 import type {
   AchievementLevel,
   AchievementStandard,
@@ -31,7 +32,11 @@ interface UseAssessmentGridResult {
 
 // 성취기준 x 학생 그리드의 데이터 로딩과 셀 상태를 함께 관리하는 훅.
 // RLS가 teacher_id = auth.uid()로 students를 걸러주므로 별도 필터는 필요 없음.
-export function useAssessmentGrid(subject: string, term: string): UseAssessmentGridResult {
+export function useAssessmentGrid(
+  subject: string,
+  term: string,
+  grade: number,
+): UseAssessmentGridResult {
   const [students, setStudents] = useState<Student[]>([])
   const [standards, setStandards] = useState<AchievementStandard[]>([])
   const [cells, setCells] = useState<CellMap>({})
@@ -93,8 +98,13 @@ export function useAssessmentGrid(subject: string, term: string): UseAssessmentG
         return
       }
 
-      const loadedStudents = studentsRes.data ?? []
-      const loadedStandards = standardsRes.data ?? []
+      const gradeGroup = getGradeGroupForGrade(grade)
+      const loadedStudents = (studentsRes.data ?? []).filter((student) =>
+        matchesExactStudentGrade(student.grade, grade),
+      )
+      const loadedStandards = (standardsRes.data ?? []).filter((standard) =>
+        matchesStandardGradeGroup(standard.grade, gradeGroup),
+      )
       setStudents(loadedStudents)
       setStandards(loadedStandards)
 
@@ -134,7 +144,7 @@ export function useAssessmentGrid(subject: string, term: string): UseAssessmentG
     return () => {
       cancelled = true
     }
-  }, [subject, term])
+  }, [grade, subject, term])
 
   const getLevel = useCallback(
     (studentId: string, standardCode: string) => cells[cellKey(studentId, standardCode)]?.level,

@@ -1,4 +1,5 @@
 export type AchievementLevel = '매우잘함' | '잘함' | '보통'
+export type GradeGroupFilter = 'all' | '1-2' | '3-4' | '5-6'
 
 export interface Student {
   id: string
