@@ -79,28 +79,28 @@ function Dashboard({ session }: { session: Session }) {
   const currentTabMeta = TAB_META[tab]
 
   return (
-    <div className="min-h-screen bg-[#eef3f8]">
-      <header className="border-b border-[#234a7a] bg-[#2c5d93] text-white">
+    <div className="min-h-screen bg-[#f1f4f9]">
+      <header className="border-b border-[#2159bc] bg-[#2f6fdc] text-white">
         <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 py-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-3 text-[13px] font-semibold text-blue-100">
+            <div className="inline-flex items-center gap-3 text-[13px] font-semibold text-[#dbe7ff]">
               <span>교사용 업무 시스템</span>
-              <span className="h-px w-10 bg-blue-200/70" aria-hidden="true" />
+              <span className="h-px w-10 bg-[#bcd2ff]" aria-hidden="true" />
             </div>
             <h1 className="mt-2 text-[30px] font-bold leading-tight text-white sm:text-[34px]">
               교과평가 종합의견 작성 시스템
             </h1>
-            <div className="mt-3 h-1 w-16 rounded-full bg-blue-200/70" aria-hidden="true" />
+            <div className="mt-3 h-1 w-16 rounded-full bg-[#bcd2ff]" aria-hidden="true" />
           </div>
           <div className="flex items-center gap-3 self-start sm:self-auto">
-            <div className="hidden text-right text-sm text-blue-100 sm:block">
+            <div className="hidden text-right text-sm text-[#dbe7ff] sm:block">
               <div className="font-medium text-white">교사용 업무 화면</div>
               <div className="mt-1 text-xs">{session.user.email}</div>
             </div>
             <button
               type="button"
               onClick={() => supabase.auth.signOut()}
-              className="rounded-sm border border-white/40 bg-white/10 px-2.5 py-1 text-xs text-white hover:bg-white/20"
+              className="rounded-sm border border-[#bdd1fa] bg-white/10 px-2.5 py-1 text-xs text-white hover:bg-white/18"
             >
               로그아웃
             </button>
@@ -108,68 +108,73 @@ function Dashboard({ session }: { session: Session }) {
         </div>
       </header>
 
-      <div className="border-b border-[#b7c9dd] bg-white">
+      <div className="border-b border-[#c7d4e7] bg-white">
         <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-3">
           <div>
-            <div className="text-xs text-slate-500">업무영역 &gt; {currentTabMeta.section}</div>
-            <div className="mt-1 text-lg font-semibold text-slate-800">{currentTabMeta.label}</div>
-            <div className="mt-1 text-sm text-slate-500">{currentTabMeta.description}</div>
+            <div className="mt-1 text-lg font-semibold text-[#263b5e]">{currentTabMeta.label}</div>
+            <div className="mt-1 text-sm text-[#667892]">{currentTabMeta.description}</div>
           </div>
 
-          <nav className="flex flex-wrap gap-2">
-            {TAB_ORDER.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={`min-w-[132px] rounded-xl border px-3 py-2 text-left text-sm transition ${
-                  tab === key
-                    ? 'border-[#2c5d93] bg-[#2c5d93] text-white shadow-sm shadow-[#2c5d93]/20'
-                    : 'border-[#d5e0ed] bg-white text-slate-700 hover:bg-[#f4f8fc]'
-                }`}
-              >
-                <div className="text-[11px] opacity-80">{TAB_META[key].section}</div>
-                <div className="font-medium">{TAB_META[key].label}</div>
-              </button>
-            ))}
+          <nav className="overflow-x-auto border-b border-[#d9e3f1]" aria-label="업무 탭">
+            <div className="flex min-w-max items-end gap-5 px-1">
+              {TAB_ORDER.map((key) => {
+                const isActive = tab === key
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTab(key)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`border-b-[3px] px-1 py-3 text-sm font-semibold transition ${
+                      isActive
+                        ? 'border-[#2f6fdc] text-[#2f6fdc]'
+                        : 'border-transparent text-[#6c7d94] hover:text-[#3f6fb6]'
+                    }`}
+                  >
+                    {TAB_META[key].label}
+                  </button>
+                )
+              })}
+            </div>
           </nav>
         </div>
       </div>
 
       {showCommonFilter && (
-        <div className="border-b border-[#c8d5e3] bg-[#f3f7fb]">
+        <div className="border-b border-[#d6e0ee] bg-[#edf2f8]">
           <div className="mx-auto w-full max-w-[1400px] px-4 py-3">
-            <div className="rounded-2xl border border-[#d7e2ee] bg-white shadow-[0_8px_24px_rgba(131,155,181,0.08)]">
-              <div className="border-b border-[#e3ebf4] bg-[#f7fbff] px-5 py-3 text-sm font-semibold text-[#35557d]">
+            <div className="rounded-2xl border border-[#d4dfed] bg-white shadow-[0_8px_22px_rgba(112,138,173,0.08)]">
+              <div className="border-b border-[#e2eaf5] bg-[#f7faff] px-5 py-3 text-sm font-semibold text-[#3460a8]">
                 기본 조회 조건
               </div>
               <div className="flex flex-wrap items-center gap-3 px-5 py-4">
-                <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f8fbff] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e8f0f8]/70">
-                  <span className="min-w-12 font-medium text-slate-500">학년도</span>
+                <label className="flex items-center gap-2 rounded-full border border-[#d9e3ef] bg-[#f6f9fd] px-3 py-2 text-sm text-[#42556f] shadow-sm shadow-[#edf3fa]">
+                  <span className="min-w-12 font-medium text-[#62758e]">학년도</span>
                   <input
                     value={schoolYear}
                     onChange={(e) => setSchoolYear(e.target.value)}
-                    className="h-9 w-24 rounded-full border border-[#d1ddeb] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#b7d3f0]"
+                    className="h-9 w-24 rounded-full border border-[#ccd9ea] bg-white px-3 text-sm text-[#30445f] outline-none transition focus:border-[#82acef] focus:ring-2 focus:ring-[#cfe0fb]"
                   />
                 </label>
-                <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#eef8f4] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e3f1ea]/70">
-                  <span className="min-w-10 font-medium text-slate-500">학기</span>
+                <label className="flex items-center gap-2 rounded-full border border-[#d9e3ef] bg-[#f6f9fd] px-3 py-2 text-sm text-[#42556f] shadow-sm shadow-[#edf3fa]">
+                  <span className="min-w-10 font-medium text-[#62758e]">학기</span>
                   <select
                     value={semester}
                     onChange={(e) => setSemester(e.target.value)}
-                    className="h-9 min-w-[112px] rounded-full border border-[#d1e6da] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#bfe6d0]"
+                    className="h-9 min-w-[112px] rounded-full border border-[#ccd9ea] bg-white px-3 text-sm text-[#30445f] outline-none transition focus:border-[#82acef] focus:ring-2 focus:ring-[#cfe0fb]"
                   >
                     <option value="1학기">1학기</option>
                     <option value="2학기">2학기</option>
                   </select>
                 </label>
                 {showGradePicker && (
-                  <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f1f8ee] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#e7f2e2]/70">
-                    <span className="min-w-10 font-medium text-slate-500">학년</span>
+                  <label className="flex items-center gap-2 rounded-full border border-[#d9e3ef] bg-[#f6f9fd] px-3 py-2 text-sm text-[#42556f] shadow-sm shadow-[#edf3fa]">
+                    <span className="min-w-10 font-medium text-[#62758e]">학년</span>
                     <select
                       value={grade}
                       onChange={(e) => setGrade(e.target.value)}
-                      className="h-9 min-w-[148px] rounded-full border border-[#d1e6da] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#bfe6d0]"
+                      className="h-9 min-w-[148px] rounded-full border border-[#ccd9ea] bg-white px-3 text-sm text-[#30445f] outline-none transition focus:border-[#82acef] focus:ring-2 focus:ring-[#cfe0fb]"
                     >
                       {[1, 2, 3, 4, 5, 6].map((value) => (
                         <option key={value} value={value}>
@@ -181,12 +186,12 @@ function Dashboard({ session }: { session: Session }) {
                 )}
                 {showSubjectPicker &&
                   (subjects.length > 0 ? (
-                    <label className="flex items-center gap-2 rounded-full border border-[#dde7f1] bg-[#f7f3ff] px-3 py-2 text-sm text-slate-700 shadow-sm shadow-[#ece7fb]/70">
-                      <span className="min-w-10 font-medium text-slate-500">교과</span>
+                    <label className="flex items-center gap-2 rounded-full border border-[#d9e3ef] bg-[#f6f9fd] px-3 py-2 text-sm text-[#42556f] shadow-sm shadow-[#edf3fa]">
+                      <span className="min-w-10 font-medium text-[#62758e]">교과</span>
                       <select
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        className="h-9 min-w-[132px] rounded-full border border-[#d9d7ef] bg-white px-3 text-sm text-slate-700 outline-none transition focus:ring-2 focus:ring-[#d3c7f7]"
+                        className="h-9 min-w-[132px] rounded-full border border-[#ccd9ea] bg-white px-3 text-sm text-[#30445f] outline-none transition focus:border-[#82acef] focus:ring-2 focus:ring-[#cfe0fb]"
                       >
                         {subjects.map((s) => (
                           <option key={s} value={s}>
@@ -200,7 +205,7 @@ function Dashboard({ session }: { session: Session }) {
                       achievement_standards 테이블에 등록된 교과가 없습니다.
                     </span>
                   ))}
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-[#6b7d94]">
                   학생 관리와 평가 화면 모두 이 조회 조건을 함께 사용합니다.
                 </div>
               </div>
