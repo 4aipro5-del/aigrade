@@ -70,6 +70,13 @@ function Dashboard({ session }: { session: Session }) {
     selectAll,
     clearAll,
     setSelectedCodes,
+    loading: selectionLoading,
+    saving: selectionSaving,
+    isDirty: selectionDirty,
+    save: saveSelection,
+    saveError: selectionSaveError,
+    lastSavedAt: selectionSavedAt,
+    otherTermSelections,
   } = useStandardSelection(standards, session.user.id, subject, term, gradeNumber)
 
   const activeStandards = standards.filter((standard) => selectedCodes.includes(standard.code))
@@ -226,7 +233,7 @@ function Dashboard({ session }: { session: Session }) {
         )}
 
         {tab === 'standards' &&
-          (loading ? (
+          (loading || selectionLoading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
               불러오는 중...
             </div>
@@ -241,11 +248,17 @@ function Dashboard({ session }: { session: Session }) {
               onClearDomain={(codes) =>
                 setSelectedCodes(selectedCodes.filter((code) => !codes.includes(code)))
               }
+              isDirty={selectionDirty}
+              saving={selectionSaving}
+              onSave={saveSelection}
+              saveError={selectionSaveError}
+              lastSavedAt={selectionSavedAt}
+              otherTermSelections={otherTermSelections}
             />
           ))}
 
         {tab === 'assessment' &&
-          (loading ? (
+          (loading || selectionLoading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
               불러오는 중...
             </div>
@@ -265,7 +278,7 @@ function Dashboard({ session }: { session: Session }) {
           ))}
 
         {tab === 'report' &&
-          (loading ? (
+          (loading || selectionLoading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
               불러오는 중...
             </div>

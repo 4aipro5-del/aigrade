@@ -36,3 +36,13 @@ export interface AchievementTemplate {
   variant_no: number
   template_text: string
 }
+
+export interface StandardSelectionRow {
+  id: string
+  teacher_id: string
+  subject: string
+  term: string
+  grade: number
+  standard_codes: string[]
+  updated_at: string
+}
