@@ -31,6 +31,20 @@ function columnLabel(header: string, index: number): string {
   return header.trim() !== '' ? header : `열 ${index + 1} (제목 없음)`
 }
 
+const SAMPLE_TEMPLATE_ROWS: Array<[number, string, string]> = [
+  [1, '홍길동', '남'],
+  [2, '이대박', '남'],
+  [51, '김영희', '여'],
+  [52, '박소망', '여'],
+]
+
+function downloadSampleTemplate() {
+  const sheet = XLSX.utils.aoa_to_sheet([['번호', '이름', '성별'], ...SAMPLE_TEMPLATE_ROWS])
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, '학생명단')
+  XLSX.writeFile(workbook, '학생명단_예시양식.xlsx')
+}
+
 function compareTerms(a: string, b: string): number {
   const [aYear = '0', aSemester = ''] = a.split('-')
   const [bYear = '0', bSemester = ''] = b.split('-')
@@ -280,6 +294,16 @@ export function StudentManager({ schoolYear, semester, selectedGrade }: StudentM
           </label>
         </div>
       </section>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={downloadSampleTemplate}
+          className="rounded-full border border-[#d2dceb] bg-white px-4 py-2 text-sm font-medium text-[#2c5d93] hover:bg-[#f1f7ff]"
+        >
+          엑셀 예시 양식 다운로드
+        </button>
+      </div>
 
       <section
         onDragOver={(e) => {
